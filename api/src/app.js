@@ -1,0 +1,22 @@
+const express = require('express'), helmet = require('helmet'), rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
+const { pool } = require('./db');
+const app = express();
+app.use(helmet());
+app.use((req, res, next) => { res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'http://localhost:3001'); res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type,X-Request-Id'); res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS'); res.setHeader('Access-Control-Expose-Headers', 'x-request-id'); if (req.method === 'OPTIONS') return res.status(204).end(); next(); });
+app.use(express.json({ limit: '100kb' }));
+app.use((req, res, next) => { req.id = req.headers['x-request-id'] || crypto.randomUUID(); res.setHeader('x-request-id', req.id);
+  const t = Date.now(); res.on('finish', () => console.log(JSON.stringify({ level: 'info', request_id: req.id, method: req.method, path: req.path, status: res.statusCode, ms: Date.now() - t })));
+  next(); });
+app.get('/healthz', (_q, r) => r.json({ status: 'ok' }));
+app.get('/readyz', async (_q, r) => { try { await pool.query('SELECT 1'); r.json({ status: 'ready' }); } catch { r.status(503).json({ status: 'db_unavailable' }); } });
+app.use('/api/v1/auth', rateLimit({ windowMs: 60000, limit: 30 }));
+app.use('/api/v1', require('./routes'));
+app.use((req, res) => res.status(404).json({ error: { code: 'not_found', message: 'Route not found', request_id: req.id } }));
+app.use((e, req, res, _n) => {
+  if (e.name === 'ZodError') return res.status(422).json({ error: { code: 'validation_error', message: 'Invalid input', details: e.issues.map(i => ({ path: i.path.join('.'), message: i.message })), request_id: req.id } });
+  if (e.code === '23505') return res.status(409).json({ error: { code: 'conflict', message: 'Already exists', request_id: req.id } });
+  console.error(JSON.stringify({ level: 'error', request_id: req.id, msg: e.message }));
+  res.status(500).json({ error: { code: 'internal_error', message: 'Something went wrong', request_id: req.id } });
+});
+module.exports = app;

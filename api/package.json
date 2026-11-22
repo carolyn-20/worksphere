@@ -1,0 +1,3 @@
+{"name":"worksphere-api","version":"1.0.0","main":"src/index.js","scripts":{"start":"node src/index.js","test":"node --test test/"},
+"dependencies":{"bcryptjs":"^2.4.3","express":"^4.19.2","express-rate-limit":"^7.4.0","helmet":"^7.1.0","jsonwebtoken":"^9.0.2","pg":"^8.12.0","zod":"^3.23.8"},
+"devDependencies":{"supertest":"^7.0.0"}}
