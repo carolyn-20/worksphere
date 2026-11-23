@@ -10,7 +10,29 @@ Next.js UI → Express API (system of record owner: users, projects, tasks, hist
 cp .env.example .env   # fill in secrets
 docker compose up --build
 # UI http://localhost:3001   API http://localhost:3000/api/v1   (migrations auto-run from db/migrations)
-cd frontend && npm i && npm test ; cd ../api && npm i && npm test ; cd ../analytics && pip install -r requirements.txt && pytest
+```
+
+Run each test suite from its service folder:
+
+API (Node.js):
+```
+cd api
+npm install
+npm test
+```
+
+Frontend (Node.js):
+```
+cd frontend
+npm install
+npm test
+```
+
+Analytics (Python):
+```
+cd analytics
+python -m pip install -r requirements.txt
+python -m pytest -q
 ```
 
 ## Capstone (concurrent edits)
